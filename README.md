@@ -333,7 +333,6 @@ tts_eval/
 │       ├── clips/                972 generated WAVs (read-only, ~740 MB)
 │       ├── asr_progress.jsonl    cached transcripts (do not delete)
 │       └── deliverables/         scored CSV, JSON, summary, findings, message draft
-├── CHANGES_score_clips.md        change log for the scoring code
 └── CLAUDE.md                     working notes for AI coding assistants
 ```
 

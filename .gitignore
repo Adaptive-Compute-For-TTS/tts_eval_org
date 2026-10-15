@@ -1,0 +1,17 @@
+# Python environment and caches (.venv alone is ~1.9 GB)
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Audio: large files, and your own voice recordings
+*.wav
+*.m4a
+runs/nfe_benchmark/clips/
+runs/human_arush/
+
+# Claude Code's local settings (has your ntfy notification hook)
+.claude/settings.local.json
+
+# Mac junk
+.DS_Store

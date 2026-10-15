@@ -1,0 +1,151 @@
+"""WER (with format-only normalization rules) and SIM for the dots.tts eval pipeline.
+
+Debug a normalization mismatch:
+    python metrics.py "Your total comes to $42.75." "your total comes to forty two dollars and seventy five cents"
+"""
+import re
+import sys
+from functools import lru_cache
+
+import jiwer
+from whisper_normalizer.english import EnglishTextNormalizer
+
+_whisper_norm = EnglishTextNormalizer()
+
+# ---------------------------------------------------------------------------
+# Custom normalization rules
+#
+# GOLDEN RULE: a rule may only reconcile different ways of WRITING the same
+# spoken words ("Ave." vs "Avenue", "a.m." vs "AM"). Never add a rule that turns
+# a wrong word into a right one (e.g. correcting Whisper's spelling of "Przybylski").
+# That would hide real TTS mistakes too.
+#
+# Each rule is (regex, replacement), applied to BOTH reference and transcript.
+# Every new rule should come with a written/spoken pair in the test suite.
+# ---------------------------------------------------------------------------
+
+# Applied to lowercased raw text, BEFORE Whisper's normalizer.
+PRE_RULES = [
+    # Dotted acronyms and times: "a.m." -> "am", "t.t.s." -> "tts"      (p011, p016, p036)
+    (r"\b((?:[a-z]\.){2,})", lambda m: m.group(1).replace(".", "")),
+    # Clock times: "6:15" and "6.15 am" -> "615"                         (p011, p016)
+    (r"(\d):(\d)", r"\1\2"),
+    (r"(\d)\.(\d\d)\s*(am|pm)\b", r"\1\2 \3"),
+    # Mixed fractions: "2 1/2" / "2½" -> "2.5"                           (p014)
+    (r"\b(\d+)\s+1/2\b", r"\1.5"),
+    (r"\b(\d+)\s*½", r"\1.5"),
+    # Street, room and month abbreviations                              (p033, p036)
+    (r"\bave\b\.?", "avenue"),
+    (r"\bhwy\b\.?", "highway"),
+    (r"\brm\b\.?", "room"),
+    # Months with or without the dot: "Jan." / "Jan" (Whisper drops it)  (p033; no prompt uses
+    # "jan" or "mar" as another word)
+    (r"\bjan\b\.?", "january"),
+    (r"\bmar\b\.?", "march"),
+    # Compounds Whisper writes differently                               (p044, p026)
+    (r"\bdoor[ -]frame", "doorframe"),
+    (r"\bquetzal[ -]?feather", "quetzal feather"),
+    # "startup's" / "start-up's" / "start-ups" / "startups" -> "startups", before Whisper's
+    # normalizer would turn "'s" into "is"                               (p035)
+    (r"\bstart-?up(?:'s|s)\b", "startups"),
+]
+
+# Applied AFTER Whisper's normalizer.
+POST_RULES = [
+    # Digit groups split by spaces: "555 0147", "6 15" -> one token      (p012, p011)
+    (r"(?<=\d) (?=\d)", ""),
+    # "2 and a half" -> "2.5"                                            (p014)
+    (r"\b(\d+) and a half\b", r"\1.5"),
+]
+
+
+def normalize(text):
+    s = text.lower()
+    for pattern, repl in PRE_RULES:
+        s = re.sub(pattern, repl, s)
+    s = _whisper_norm(s)
+    for pattern, repl in POST_RULES:
+        s = re.sub(pattern, repl, s)
+    return " ".join(s.split())
+
+
+# ---------------------------------------------------------------------------
+# WER
+# ---------------------------------------------------------------------------
+
+def compute_wer(reference, transcript):
+    """Per-clip WER with substitution/deletion/insertion counts."""
+    ref, hyp = normalize(reference), normalize(transcript)
+    n_ref = len(ref.split())
+    if not hyp:  # nothing transcribed: every reference word was deleted
+        return {"wer": 1.0, "subs": 0, "dels": n_ref, "ins": 0, "ref_words": n_ref,
+                "ref_norm": ref, "hyp_norm": hyp}
+    out = jiwer.process_words(ref, hyp)
+    return {
+        "wer": out.wer,
+        "subs": out.substitutions,
+        "dels": out.deletions,
+        "ins": out.insertions,
+        "ref_words": out.hits + out.substitutions + out.deletions,
+        "ref_norm": ref,
+        "hyp_norm": hyp,
+    }
+
+
+def corpus_wer(rows):
+    """Corpus WER = total errors / total reference words over many clips.
+
+    `rows` are compute_wer() results (or per-clip CSV rows with the same keys).
+    This equals jiwer on lists of references/transcripts, but also handles empty
+    transcripts and works directly on grouped CSV rows (per bucket, per category).
+    Never average per-clip WER instead.
+    """
+    rows = list(rows)
+    errors = sum(r["subs"] + r["dels"] + r["ins"] for r in rows)
+    words = sum(r["ref_words"] for r in rows)
+    return {"wer": errors / words if words else float("nan"),
+            "errors": errors, "ref_words": words, "clips": len(rows)}
+
+
+# ---------------------------------------------------------------------------
+# SIM
+# ---------------------------------------------------------------------------
+
+SIM_MODEL = "microsoft/wavlm-base-plus-sv"
+
+
+@lru_cache(maxsize=1)
+def _sim_model():
+    from transformers import AutoFeatureExtractor, WavLMForXVector
+    extractor = AutoFeatureExtractor.from_pretrained(SIM_MODEL)
+    model = WavLMForXVector.from_pretrained(SIM_MODEL).eval()
+    return extractor, model
+
+
+@lru_cache(maxsize=256)  # the reference voice is reused for every clip, so cache it
+def voiceprint(path):
+    """512-number x-vector for one clip, unit-length so a dot product is cosine similarity."""
+    import torch
+    from asr import SAMPLE_RATE, check_audio, load_audio
+
+    audio = load_audio(path)
+    check_audio(audio, path)
+    extractor, model = _sim_model()
+    inputs = extractor(audio, sampling_rate=SAMPLE_RATE, return_tensors="pt")
+    with torch.inference_mode():
+        emb = model(**inputs).embeddings
+    return torch.nn.functional.normalize(emb, dim=-1)[0]
+
+
+def sim(generated_path, reference_path):
+    """Cosine similarity of two voices: 1.0 = identical. ~0.01-0.02 differences can be noise."""
+    a, b = voiceprint(str(generated_path)), voiceprint(str(reference_path))
+    return float((a @ b).item())
+
+
+if __name__ == "__main__":
+    written, spoken = sys.argv[1], sys.argv[2]
+    result = compute_wer(written, spoken)
+    print("reference ->", result["ref_norm"])
+    print("transcript->", result["hyp_norm"])
+    print({k: v for k, v in result.items() if not k.endswith("_norm")})

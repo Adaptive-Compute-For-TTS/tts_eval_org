@@ -1,0 +1,18 @@
+# Core: transcription and WER/CER scoring (versions used for the published results)
+faster-whisper==1.2.1
+ctranslate2==4.8.3
+jiwer==4.0.0
+whisper-normalizer==0.1.15
+pandas==3.0.6
+numpy==2.4.6
+soundfile==0.14.0
+
+# Tests
+pytest==9.1.1
+
+# Optional: Excel export
+openpyxl==3.1.5
+
+# Optional: speaker similarity (SIM) side experiment in metrics.py; large downloads
+# torch==2.14.1
+# transformers==5.19.0

@@ -123,8 +123,8 @@ normalized text.
 
 | Metric | Definition | Calculated in |
 |---|---|---|
-| **WER** | (substitutions + deletions + insertions) / reference words | `score_clips.py` `score_version()`; also `metrics.py` `compute_wer()` |
-| **CER** | character edit distance / reference characters (spaces included) | `score_clips.py` `score_version()` |
+| **WER** | (substitutions + deletions + insertions) / reference words | `score_clips.py` `score_version()`; also `metrics.py` `compute_wer()` and `wer_cer()` |
+| **CER** | character edit distance / reference characters (spaces included) | `score_clips.py` `score_version()`; also `metrics.py` `wer_cer()` |
 | **Corpus WER** | total word errors / total reference words over a group of clips — never the mean of per-clip WER | `metrics.py` `corpus_wer()` |
 | **Corpus CER** | total character errors / total reference characters | `score_clips.py` `corpus_cer()` |
 | `missing_end_words` | reference words after the last correctly heard word (all of them if none was heard); the main cut-off measure | `score_clips.py` `word_errors()` |
@@ -228,6 +228,20 @@ python metrics.py "St. Clair Ave. is closed from Jan. to Mar." "Saint Clair Aven
 # {'wer': 0.0, 'subs': 0, 'dels': 0, 'ins': 0, 'ref_words': 9}
 ```
 
+### WER and CER from Python (`metrics.py` `wer_cer()`)
+
+```python
+from metrics import wer_cer
+
+wer, cer = wer_cer("The kettle is already on the stove.", "the kettle is already on the stone")
+# (0.142857..., 0.029411...)
+```
+
+Same normalization and the same values as the uncapped `wer_full` / `cer_full` columns from `score_clips.py`
+(checked on all 972 benchmark clips). Not capped at 1.0. An empty transcript gives `(1.0, 1.0)`; an empty
+reference gives `(nan, nan)`. For corpus WER over many clips, use `compute_wer()` + `corpus_wer()` instead of
+averaging these.
+
 ### Score your own recordings (`quick_score.py`)
 
 Recordings named `<prompt_id>.wav` (e.g. `p002.wav`) are scored against `prompts/benchmark_prompts_v1.json`.
@@ -319,7 +333,7 @@ tts_eval/
 ├── LICENSE                       MIT
 ├── requirements.txt              pinned dependencies
 ├── asr.py                        audio loading, silent/short rejection, Whisper transcription, ASR_SETTINGS
-├── metrics.py                    normalize(), compute_wer(), corpus_wer(), sim()
+├── metrics.py                    normalize(), compute_wer(), wer_cer(), corpus_wer(), sim()
 ├── score_clips.py                benchmark scoring: caching, full/no_intro, CER, cut-off measures, outputs
 ├── quick_score.py                sample: score your own recordings
 ├── tests/test_metrics.py         unit tests

@@ -92,6 +92,20 @@ def compute_wer(reference, transcript):
     }
 
 
+def wer_cer(reference, transcript):
+    """(WER, CER) for one clip, normalized the same way as score_clips.py's "full" scores.
+
+    Uncapped, so insertions can push either above 1.0. An empty transcript scores (1.0, 1.0);
+    an empty reference has no defined error rate and scores (nan, nan).
+    """
+    ref, hyp = normalize(reference), normalize(transcript)
+    if not ref:
+        return float("nan"), float("nan")
+    if not hyp:
+        return 1.0, 1.0
+    return jiwer.wer(ref, hyp), jiwer.cer(ref, hyp)
+
+
 def corpus_wer(rows):
     """Corpus WER = total errors / total reference words over many clips.
 

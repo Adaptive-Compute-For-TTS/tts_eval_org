@@ -1,4 +1,5 @@
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -6,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from metrics import compute_wer, normalize  # noqa: E402
+from metrics import compute_wer, normalize, wer_cer  # noqa: E402
 from score_clips import official_columns, score_clip  # noqa: E402
 
 INTRO = "Hey, Adam here. Let's create something that feels real, sounds human, and connects every time."
@@ -227,3 +228,19 @@ def test_cer_counts_match_jiwer_and_corpus_sums():
     assert a["ref_chars_full"] == len(ref) and b["char_errors_full"] == b["ref_chars_full"] == len(ref)
     c = corpus_cer([a, b], "full")
     assert c["cer"] == pytest.approx((a["char_errors_full"] + len(ref)) / (2 * len(ref)))
+
+
+# --- wer_cer() ---
+
+@pytest.mark.parametrize("transcript", [
+    KETTLE, "The kettle is already on the stone.", "the kettle the kettle is on the stove", "",
+])
+def test_wer_cer_matches_score_clip_full(transcript):
+    s = score_clip(KETTLE, transcript)
+    assert wer_cer(KETTLE, transcript) == pytest.approx((s["wer_full"], s["cer_full"]))
+
+
+def test_wer_cer_empty_reference_is_nan():
+    assert all(math.isnan(x) for x in wer_cer("", "something"))
+    s = score_clip("", "something")
+    assert math.isnan(s["wer_full"]) and math.isnan(s["cer_full"])

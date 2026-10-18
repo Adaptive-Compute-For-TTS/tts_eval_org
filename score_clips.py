@@ -119,7 +119,10 @@ def score_version(ref_words, hyp_words):
         char_errors = ref_chars = len(ref)
     e.pop("_last_hit")
     # char_errors / ref_chars are kept for corpus CER (not written to the CSV)
-    return {"wer": (e["subs"] + e["dels"] + e["ins"]) / len(ref_words), "cer": char_errors / ref_chars, **e,
+    # An empty reference has no defined error rate: NaN instead of dividing by zero
+    wer = (e["subs"] + e["dels"] + e["ins"]) / len(ref_words) if ref_words else float("nan")
+    cer = char_errors / ref_chars if ref_chars else float("nan")
+    return {"wer": wer, "cer": cer, **e,
             **heard_scores(ref_words, hyp_words), "char_errors": char_errors, "ref_chars": ref_chars}
 
 

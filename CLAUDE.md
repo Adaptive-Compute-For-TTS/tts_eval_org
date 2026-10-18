@@ -19,7 +19,7 @@ error rate). SIM (speaker similarity) is a side experiment.
 tts_eval/
   asr.py            load_audio(), check_audio() (rejects silent/short), transcribe(), ASR_SETTINGS
   metrics.py        normalize() (PRE_RULES + Whisper normalizer + POST_RULES), compute_wer(),
-                    corpus_wer(), sim()
+                    wer_cer(), corpus_wer(), sim()
   quick_score.py    scores Arush's own test recordings in runs/human_arush/audio
   score_clips.py    scores Nick's benchmark: runs/nfe_benchmark/clips.csv + clips/*.wav
   prompts/benchmark_prompts_v1.json   Eric's 54 prompts (p001-p054)

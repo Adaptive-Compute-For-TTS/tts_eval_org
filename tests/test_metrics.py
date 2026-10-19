@@ -172,6 +172,26 @@ def test_new_format_rules(written, spoken):
     assert w["wer"] == 0.0, f"ref_norm={w['ref_norm']!r} hyp_norm={w['hyp_norm']!r}"
 
 
+@pytest.mark.parametrize("written, spoken", [
+    ("Call me back at 555-0147.", "Call me back at 5550147."),
+    ("Call me back at 555-0147.", "Call me back at 555 0147."),
+    ("Call me back at 555-0147.", "Call me back at five five five zero one four seven."),
+    ("lunch at 12:05", "lunch at 12 05"),
+])
+def test_leading_zero_digit_groups(written, spoken):
+    w = compute_wer(written, spoken)
+    assert w["wer"] == 0.0, f"ref_norm={w['ref_norm']!r} hyp_norm={w['hyp_norm']!r}"
+
+
+def test_digit_groups_never_join_into_a_year():
+    assert normalize("On March 3, 2024, it snowed") == "on march 3 2024 it snowed"
+    assert normalize("between 2023 2024") == "between 2023 2024"
+    assert normalize("6 15") == "615"   # times still join
+    # "3rd" vs "3" is one substitution, not two from a merged "32024" token
+    w = compute_wer("On March 3rd, 2024, it snowed", "On March 3, 2024, it snowed")
+    assert w["subs"] + w["dels"] + w["ins"] == 1
+
+
 def test_month_rules_leave_full_month_names_alone():
     assert normalize("in March and January") == "in march and january"
 

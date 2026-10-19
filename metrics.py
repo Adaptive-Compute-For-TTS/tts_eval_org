@@ -31,6 +31,10 @@ PRE_RULES = [
     # Clock times: "6:15" and "6.15 am" -> "615"                         (p011, p016)
     (r"(\d):(\d)", r"\1\2"),
     (r"(\d)\.(\d\d)\s*(am|pm)\b", r"\1\2 \3"),
+    # Digit groups whose second group starts with 0: "555-0147" / "555 0147" -> "5550147".
+    # Must run before Whisper's normalizer, which drops the leading zero of a separate
+    # number ("0147" -> "147") but keeps it inside one ("5550147")      (p012)
+    (r"(\d)[ -](?=0\d)", r"\1"),
     # Mixed fractions: "2 1/2" / "2½" -> "2.5"                           (p014)
     (r"\b(\d+)\s+1/2\b", r"\1.5"),
     (r"\b(\d+)\s*½", r"\1.5"),
@@ -52,8 +56,9 @@ PRE_RULES = [
 
 # Applied AFTER Whisper's normalizer.
 POST_RULES = [
-    # Digit groups split by spaces: "555 0147", "6 15" -> one token      (p012, p011)
-    (r"(?<=\d) (?=\d)", ""),
+    # Digit groups split by spaces: "555 1234", "6 15" -> one token     (p012, p011)
+    # but never into a following year: "March 3, 2024" stays "3 2024"   (p013)
+    (r"(?<=\d) (?=\d)(?!(?:1[5-9]|20)\d\d\b)", ""),
     # "2 and a half" -> "2.5"                                            (p014)
     (r"\b(\d+) and a half\b", r"\1.5"),
 ]

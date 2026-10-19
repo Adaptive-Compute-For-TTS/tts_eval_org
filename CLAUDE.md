@@ -9,7 +9,7 @@ error rate). SIM (speaker similarity) is a side experiment.
 
 ## Environment
 - MacBook Air, 8 GB RAM, no GPU. Everything runs on CPU.
-- Always work from this folder (`~/dots_messaround/tts_eval`) with the venv active:
+- Always work from this folder (`~/dots_WER_analysis/tts_eval`) with the venv active:
   `source .venv/bin/activate`
 - Packages: faster-whisper, jiwer, whisper-normalizer, pandas, soundfile, torch, transformers.
 - ASR: faster-whisper `small`, int8, CPU, language en, beam 5, temperature 0 (set in `asr.py`).
@@ -36,7 +36,13 @@ tts_eval/
   with WER = 1.0, never dropped.
 - Every orig_3090 clip is cut at 9.12 s. Nick wants to know if WER shows the endings cut off
   (`trailing_dels` = reference words missing at the end).
-- Clips appear to start with an "intro" (extra speech before the prompt text). We are waiting on
+- orig_3090 clips start with an "intro" ("Hey, Adam here...", the voice reference leaking into the output);
+  xvector_4090 clips have none. The `no_intro` scoring version sets it aside; it is the official version.
+  Details in runs/nfe_benchmark/deliverables/intro_and_cut_findings.md.
+- xvector_4090 long clips are all cut at 12.80 s. The clean subset for NFE comparisons is xvector_4090
+  short + medium (324 clips).
+- `repo_path` is the clip's path in the generation repo (GitHub: Adaptive-Compute-For-TTS/watai_exp). Keep it as
+  given; it is not used for scoring.
 
 ## dots.tts background (from the model README; relevant facts only)
 - dots.tts outputs 48 kHz mono audio, generated autoregressively in latent "patches" of ~160 ms.
@@ -56,13 +62,16 @@ tts_eval/
 
 ## Rules
 - Never modify clips.csv, the audio files, or anything in runs/human_arush/.
-- Outputs go next to clips.csv: clips_with_wer.csv and wer_run_info.json.
+- score_clips.py writes runs/nfe_benchmark/deliverables/clips_arush.csv and wer_run_info.json. summary.md in the
+  same folder is written by hand from those files: update its numbers whenever the scores change.
 - Normalization rules may only reconcile different WRITINGS of the same spoken words
   ("Ave." vs "avenue"). Never add a rule that turns a wrong word into a right one.
 - Report corpus WER (total errors / total reference words), never the average of per-clip WER.
-- WER can exceed 1.0 when extra words are inserted. Do not cap it.
+- WER can exceed 1.0 when extra words are inserted. Never cap corpus WER/CER or the *_uncapped, *_full and
+  *_no_intro columns. Only the requester's `wer` / `cer` columns are capped at 1.0 (their format).
 - Transcription is slow on this laptop. Never delete runs/nfe_benchmark/asr_progress.jsonl
-  (saved transcripts) unless the ASR model changes or Arush asks.
+  (saved transcripts). When the ASR model changes, rename it (e.g. asr_progress_small.jsonl) instead.
+  Never compare WER across ASR models.
 - Always test on a few clips (--limit) before a full run, and show Arush the results.
 - Explain what you changed in plain language.
 

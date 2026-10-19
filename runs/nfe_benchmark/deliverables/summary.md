@@ -1,6 +1,7 @@
 # WER run summary: dots.tts NFE sweeps (Atharv's request)
 
-Generated 2026-10-14 from `runs/nfe_benchmark/deliverables/clips.csv` (972 clips, official version `no_intro`).
+Generated 2026-10-14 from the scored CSV (972 clips, official version `no_intro`); numbers updated 2026-10-19 after
+the digit-group normalization fix (see "Changes on 2026-10-19" below). Scored CSV: `deliverables/clips_arush.csv`.
 ASR: faster-whisper 1.2.1 (ctranslate2 4.8.3), Whisper `small`, int8, CPU, English, beam 5, temperature 0,
 condition_on_previous_text off. Normalization: Whisper EnglishTextNormalizer (whisper-normalizer 0.1.15) +
 PRE_RULES/POST_RULES from metrics.py, applied to reference and transcript. jiwer 4.0.0.
@@ -9,17 +10,34 @@ The intro / 9.12 s investigation is in `intro_and_cut_findings.md`.
 **All verification checks passed (sections 1-12 below). Rescoring only: no clip was re-transcribed.**
 
 ## Key results
-- Corpus WER: **no_intro 0.5832** (12,712 errors / 21,798 words), **full 0.7089** (15,452 / 21,798).
-- orig_3090: no_intro 0.9661, full 1.2175. xvector_4090: 0.2002 (identical in both versions; no intro).
-- Clean subset for NFE vs quality, xvector_4090 short + medium (324 clips, none capped): corpus WER 0.0351,
+- Corpus WER: **no_intro 0.5831** (12,710 errors / 21,798 words), **full 0.7088** (15,450 / 21,798).
+- orig_3090: no_intro 0.9661, full 1.2175. xvector_4090: 0.2000 (identical in both versions; no intro).
+- Clean subset for NFE vs quality, xvector_4090 short + medium (324 clips, none capped): corpus WER 0.0346,
   between 0.027 and 0.046 per NFE with no trend (section 10).
-- Corpus `wer_heard` (WER before the cut): xvector 0.0235, orig 0.2550 (not meaningful for orig; see section 9).
-- Corpus CER (total character errors / total reference characters): **no_intro 0.5683** (68,318 / 120,222),
-  full 0.6024. orig_3090 0.9567, xvector_4090 0.1799; clean subset (xvector short + medium) 0.0173, between 0.012 and
+- Corpus `wer_heard` (WER before the cut): xvector 0.0234, orig 0.2550 (not meaningful for orig; see section 9).
+- Corpus CER (total character errors / total reference characters): **no_intro 0.5682** (68,325 / 120,240),
+  full 0.6023. orig_3090 0.9567, xvector_4090 0.1798; clean subset (xvector short + medium) 0.0172, between 0.012 and
   0.024 per NFE. By run and NFE in section 12.
 - Clips capped at 1.0 in `wer`: 12.
 - 4 silent clips, all orig_3090 (p036 NFE 6; p018, p034, p045 NFE 8): empty transcript, WER 1.0 in both versions.
 - 9.12 s question: yes, WER shows the cut (section 5; conclusion in intro_and_cut_findings.md).
+
+## Changes on 2026-10-19: digit-group normalization fix (rescored from cached transcripts, no re-transcription)
+Two format-only fixes in `metrics.py`, each with written/spoken unit tests:
+- **Leading zeros.** Whisper's normalizer drops the leading zero of a separate number ("0147" -> "147") but keeps
+  it inside one ("5550147"), so the reference "555-0147" became `555147` while a transcript "5550147" stayed
+  `5550147`: a correct reading scored as an error. New PRE_RULE joins a digit group starting with 0 onto the
+  previous digits before Whisper's normalizer runs: "555-0147", "555 0147" and "five five five zero one four seven"
+  all give `5550147`.
+- **Years.** The POST_RULE that joins digit groups ("6 15" -> "615") also joined a date's day into its year
+  ("March 3, 2024" -> `32024`), turning one formatting difference into two errors. It no longer joins into a
+  following year (1500-2099).
+
+Effect: 19 clips changed (18 x p012, 1 x p013). 2 errors removed (xvector p012 NFE 6, xvector p013 NFE 6), so corpus
+WER no_intro 0.5832 -> 0.5831 and clean-subset WER 0.0351 -> 0.0346 (NFE 6: 0.0389 -> 0.0341). Reference characters
+120,222 -> 120,240 (`5550147` has one more character than `555147`), so most CER figures move in the 4th decimal.
+CER rises for 3 orig p012 clips whose transcripts really are missing or wrong digits ("555-" cut off; "554147").
+No conclusion changes. Every table below was recomputed from the rescored CSV.
 
 ## Changes since the first STOP POINT 2 (all approved)
 ### 1. Format-only normalization rules (PRE_RULES in metrics.py, each with a written/spoken unit test)
@@ -37,7 +55,8 @@ reference words went from 21,816 to 21,798.
 
 ### 2. Stricter intro attribution
 The intro is now the transcript only up to its last EXACT match to an intro word. Measured with the old rules:
-12,778 -> 12,785 no_intro errors (+7). With the new rules and strict attribution: 12,712.
+12,778 -> 12,785 no_intro errors (+7). With the new rules and strict attribution: 12,712 (12,710 after the
+2026-10-19 digit-group fix).
 - xvector clips with non-empty `intro_text`: 22 -> **0**.
 - Side effect: when the intro's own last word is cut or misheard ("connect" x9, "hu" x4, "con" x2, "sound"), that word
   now counts as an inserted error in about 18 orig clips. 66 clips (44 orig, 22 xvector) now have leading words
@@ -100,25 +119,25 @@ Every clip matching the README's 4 (prompt, NFE), both runs:
 - PASS: no other clip has an empty transcript (0 found)
 
 ## 3. Corpus WER recomputed from saved columns
-- PASS: full: 15452 errors / 21798 words = 0.7089 (run printed 0.7089)
-  - independent jiwer recompute (full): 15452 errors (alignment ties can differ by a few)
-- PASS: no_intro: 12712 errors / 21798 words = 0.5832 (run printed 0.5832)
-  - independent jiwer recompute (no_intro): 12712 errors (alignment ties can differ by a few)
+- PASS: full: 15450 errors / 21798 words = 0.7088 (run printed 0.7088)
+  - independent jiwer recompute (full): 15450 errors (alignment ties can differ by a few)
+- PASS: no_intro: 12710 errors / 21798 words = 0.5831 (run printed 0.5831)
+  - independent jiwer recompute (no_intro): 12710 errors (alignment ties can differ by a few)
 
 ## 4. Corpus WER breakdowns
-Overall: full 0.7089, no_intro 0.5832
+Overall: full 0.7088, no_intro 0.5831
 
 ### By run_id
 | run_id | clips | WER full | WER no_intro | mean missing_end_words full | no_intro |
 |---|---|---|---|---|---|
 | orig_3090 | 486 | 1.2175 | 0.9661 | 12.23 | 20.28 |
-| xvector_4090 | 486 | 0.2002 | 0.2002 | 3.89 | 3.89 |
+| xvector_4090 | 486 | 0.2000 | 0.2000 | 3.88 | 3.88 |
 
 ### By nfe
 | nfe | clips | WER full | WER no_intro | mean missing_end_words full | no_intro |
 |---|---|---|---|---|---|
 | 4 | 108 | 0.7436 | 0.6007 | 8.02 | 12.08 |
-| 6 | 108 | 0.7164 | 0.5904 | 8.10 | 12.49 |
+| 6 | 108 | 0.7155 | 0.5896 | 8.09 | 12.48 |
 | 8 | 108 | 0.6833 | 0.5545 | 8.15 | 11.98 |
 | 10 | 108 | 0.6709 | 0.5479 | 7.19 | 12.04 |
 | 12 | 108 | 0.6685 | 0.5516 | 7.75 | 12.18 |
@@ -140,7 +159,7 @@ Overall: full 0.7089, no_intro 0.5832
 | orig_3090 | 24 | 54 | 1.2477 | 1.0223 | 12.70 | 20.69 |
 | orig_3090 | 32 | 54 | 1.1767 | 0.9116 | 13.70 | 20.30 |
 | xvector_4090 | 4 | 54 | 0.2180 | 0.2180 | 4.52 | 4.52 |
-| xvector_4090 | 6 | 54 | 0.2221 | 0.2221 | 4.57 | 4.57 |
+| xvector_4090 | 6 | 54 | 0.2205 | 0.2205 | 4.56 | 4.56 |
 | xvector_4090 | 8 | 54 | 0.1908 | 0.1908 | 3.63 | 3.63 |
 | xvector_4090 | 10 | 54 | 0.1883 | 0.1883 | 3.78 | 3.78 |
 | xvector_4090 | 12 | 54 | 0.1792 | 0.1792 | 3.69 | 3.69 |
@@ -156,8 +175,8 @@ Overall: full 0.7089, no_intro 0.5832
 | orig_3090 | medium | 162 | 1.1857 | 1.0586 | 11.54 | 15.77 |
 | orig_3090 | short | 162 | 3.2732 | 0.4796 | 1.48 | 1.48 |
 | xvector_4090 | long | 162 | 0.2850 | 0.2850 | 11.59 | 11.59 |
-| xvector_4090 | medium | 162 | 0.0348 | 0.0348 | 0.05 | 0.05 |
-| xvector_4090 | short | 162 | 0.0363 | 0.0363 | 0.02 | 0.02 |
+| xvector_4090 | medium | 162 | 0.0344 | 0.0344 | 0.05 | 0.05 |
+| xvector_4090 | short | 162 | 0.0351 | 0.0351 | 0.01 | 0.01 |
 
 - Clips with uncapped WER > 1.0 (full): 220; CER > 1.0: 169
 - Clips with uncapped WER > 1.0 (no_intro): 12; CER > 1.0: 8
@@ -258,10 +277,10 @@ xvector_4090 duration range: 1.44 - 12.8 s; clips >= 9.12 s: 172
 ### Paired orig_3090 vs xvector_4090 (same prompt + NFE), mean per clip
 | length | pairs | ref words | missing_end no_intro orig | xvector | paired diff | missing_end full orig | xvector | paired diff | trailing_dels no_intro orig | xvector | WER no_intro orig | xvector |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| short | 162 | 5.4 | 1.48 | 0.02 | +1.46 | 1.48 | 0.02 | +1.46 | 1.12 | 0.00 | 0.4796 | 0.0363 |
-| medium | 162 | 17.4 | 15.77 | 0.05 | +15.72 | 11.54 | 0.05 | +11.49 | 15.25 | 0.04 | 1.0586 | 0.0348 |
+| short | 162 | 5.4 | 1.48 | 0.01 | +1.46 | 1.48 | 0.01 | +1.47 | 1.12 | 0.00 | 0.4796 | 0.0351 |
+| medium | 162 | 17.4 | 15.77 | 0.05 | +15.72 | 11.54 | 0.05 | +11.49 | 15.25 | 0.04 | 1.0586 | 0.0344 |
 | long | 162 | 44.4 | 43.60 | 11.59 | +32.01 | 23.66 | 11.59 | +12.07 | 43.43 | 10.99 | 0.9896 | 0.2850 |
-| ALL | 486 | 22.4 | 20.28 | 3.89 | +16.39 | 12.23 | 3.89 | +8.34 | 19.93 | 3.68 | 0.9661 | 0.2002 |
+| ALL | 486 | 22.4 | 20.28 | 3.88 | +16.40 | 12.23 | 3.88 | +8.34 | 19.93 | 3.68 | 0.9661 | 0.2000 |
 
 Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), speech clips only:
 - short: orig_3090 58%, xvector_4090 2%; target sentence entirely missing: orig 14%, xvector 0%
@@ -313,7 +332,7 @@ Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), sp
 ## 9. Heard-portion WER (wer_heard, official no_intro)
 - PASS: wer_heard filled exactly when heard_ref_words > 0
 - PASS: heard_ref_words = ref_words - missing_end_words
-- PASS: corpus wer_heard 478/10053 = 0.0475 matches run info
+- PASS: corpus wer_heard 477/10054 = 0.0474 matches run info
 - clips with nothing heard (excluded from wer_heard): 276 (orig 276, xvector 0)
 
 | run_id | nfe | clips | heard words | ref words | corpus wer_heard | corpus WER no_intro |
@@ -328,7 +347,7 @@ Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), sp
 | orig_3090 | 24 | 54 | 94 | 1211 | 0.2234 | 1.0223 |
 | orig_3090 | 32 | 54 | 115 | 1211 | 0.0696 | 0.9116 |
 | xvector_4090 | 4 | 54 | 967 | 1211 | 0.0207 | 0.2180 |
-| xvector_4090 | 6 | 54 | 964 | 1211 | 0.0228 | 0.2221 |
+| xvector_4090 | 6 | 54 | 965 | 1211 | 0.0218 | 0.2205 |
 | xvector_4090 | 8 | 54 | 1015 | 1211 | 0.0315 | 0.1908 |
 | xvector_4090 | 10 | 54 | 1007 | 1211 | 0.0228 | 0.1883 |
 | xvector_4090 | 12 | 54 | 1012 | 1211 | 0.0168 | 0.1792 |
@@ -337,7 +356,7 @@ Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), sp
 | xvector_4090 | 24 | 54 | 1004 | 1211 | 0.0229 | 0.1899 |
 | xvector_4090 | 32 | 54 | 1004 | 1211 | 0.0229 | 0.1908 |
 | orig_3090 | all | 486 | 1043 | 10899 | 0.2550 | 0.9661 |
-| xvector_4090 | all | 486 | 9010 | 10899 | 0.0235 | 0.2002 |
+| xvector_4090 | all | 486 | 9011 | 10899 | 0.0234 | 0.2000 |
 
 ## 10. Clean subset: xvector_4090 short + medium, corpus WER (no_intro) by NFE
 (long xvector clips are all capped at 12.8 s, so they are left out; max duration in this subset: 10.72 s)
@@ -345,7 +364,7 @@ Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), sp
 | nfe | clips | ref words | errors | corpus WER | unfinished clips |
 |---|---|---|---|---|---|
 | 4 | 36 | 411 | 11 | 0.0268 | 0 |
-| 6 | 36 | 411 | 16 | 0.0389 | 1 |
+| 6 | 36 | 411 | 14 | 0.0341 | 0 |
 | 8 | 36 | 411 | 15 | 0.0365 | 0 |
 | 10 | 36 | 411 | 15 | 0.0365 | 1 |
 | 12 | 36 | 411 | 13 | 0.0316 | 2 |
@@ -353,73 +372,73 @@ Share of clips with the sentence unfinished (missing_end_words_no_intro > 0), sp
 | 20 | 36 | 411 | 15 | 0.0365 | 0 |
 | 24 | 36 | 411 | 15 | 0.0365 | 0 |
 | 32 | 36 | 411 | 11 | 0.0268 | 1 |
-| all | 324 | 3699 | 130 | 0.0351 | 7 |
+| all | 324 | 3699 | 128 | 0.0346 | 6 |
 
 ## 11. intro_text on xvector_4090
 - xvector clips with non-empty intro_text: 0
 
 ## 12. Corpus CER (total character errors / total reference characters)
 - PASS: per-clip cer_full = recomputed char errors / ref chars
-- PASS: corpus CER full: 72423 / 120222 = 0.6024 matches run info
+- PASS: corpus CER full: 72424 / 120240 = 0.6023 matches run info
 - PASS: per-clip cer_no_intro = recomputed char errors / ref chars
-- PASS: corpus CER no_intro: 68318 / 120222 = 0.5683 matches run info
+- PASS: corpus CER no_intro: 68325 / 120240 = 0.5682 matches run info
 
-Overall: CER no_intro 0.5683, full 0.6024
+Overall: CER no_intro 0.5682, full 0.6023
 
 ### By run_id
 | run_id | clips | ref chars | CER no_intro | CER full | WER no_intro |
 |---|---|---|---|---|---|
-| orig_3090 | 486 | 60111 | 0.9567 | 1.0250 | 0.9661 |
-| xvector_4090 | 486 | 60111 | 0.1799 | 0.1799 | 0.2002 |
+| orig_3090 | 486 | 60120 | 0.9567 | 1.0249 | 0.9661 |
+| xvector_4090 | 486 | 60120 | 0.1798 | 0.1798 | 0.2000 |
 
 ### By nfe
 | nfe | clips | ref chars | CER no_intro | CER full | WER no_intro |
 |---|---|---|---|---|---|
-| 4 | 108 | 13358 | 0.5884 | 0.6411 | 0.6007 |
-| 6 | 108 | 13358 | 0.5770 | 0.6149 | 0.5904 |
-| 8 | 108 | 13358 | 0.5454 | 0.5943 | 0.5545 |
-| 10 | 108 | 13358 | 0.5380 | 0.5713 | 0.5479 |
-| 12 | 108 | 13358 | 0.5463 | 0.5683 | 0.5516 |
-| 16 | 108 | 13358 | 0.6130 | 0.6538 | 0.6350 |
-| 20 | 108 | 13358 | 0.5835 | 0.5979 | 0.6111 |
-| 24 | 108 | 13358 | 0.5844 | 0.6028 | 0.6061 |
-| 32 | 108 | 13358 | 0.5383 | 0.5774 | 0.5512 |
+| 4 | 108 | 13360 | 0.5884 | 0.6411 | 0.6007 |
+| 6 | 108 | 13360 | 0.5768 | 0.6147 | 0.5896 |
+| 8 | 108 | 13360 | 0.5454 | 0.5942 | 0.5545 |
+| 10 | 108 | 13360 | 0.5380 | 0.5712 | 0.5479 |
+| 12 | 108 | 13360 | 0.5463 | 0.5682 | 0.5516 |
+| 16 | 108 | 13360 | 0.6129 | 0.6537 | 0.6350 |
+| 20 | 108 | 13360 | 0.5835 | 0.5978 | 0.6111 |
+| 24 | 108 | 13360 | 0.5844 | 0.6027 | 0.6061 |
+| 32 | 108 | 13360 | 0.5383 | 0.5773 | 0.5512 |
 
 ### By run_id x nfe
 | run_id | nfe | clips | ref chars | CER no_intro | CER full | WER no_intro |
 |---|---|---|---|---|---|---|
-| orig_3090 | 4 | 54 | 6679 | 0.9742 | 1.0797 | 0.9835 |
-| orig_3090 | 6 | 54 | 6679 | 0.9545 | 1.0304 | 0.9587 |
-| orig_3090 | 8 | 54 | 6679 | 0.9171 | 1.0147 | 0.9182 |
-| orig_3090 | 10 | 54 | 6679 | 0.9063 | 0.9728 | 0.9075 |
-| orig_3090 | 12 | 54 | 6679 | 0.9232 | 0.9672 | 0.9240 |
-| orig_3090 | 16 | 54 | 6679 | 1.0585 | 1.1401 | 1.0867 |
-| orig_3090 | 20 | 54 | 6679 | 0.9723 | 1.0010 | 0.9827 |
-| orig_3090 | 24 | 54 | 6679 | 0.9966 | 1.0332 | 1.0223 |
-| orig_3090 | 32 | 54 | 6679 | 0.9075 | 0.9856 | 0.9116 |
-| xvector_4090 | 4 | 54 | 6679 | 0.2026 | 0.2026 | 0.2180 |
-| xvector_4090 | 6 | 54 | 6679 | 0.1994 | 0.1994 | 0.2221 |
-| xvector_4090 | 8 | 54 | 6679 | 0.1738 | 0.1738 | 0.1908 |
-| xvector_4090 | 10 | 54 | 6679 | 0.1698 | 0.1698 | 0.1883 |
-| xvector_4090 | 12 | 54 | 6679 | 0.1693 | 0.1693 | 0.1792 |
-| xvector_4090 | 16 | 54 | 6679 | 0.1674 | 0.1674 | 0.1833 |
-| xvector_4090 | 20 | 54 | 6679 | 0.1948 | 0.1948 | 0.2395 |
-| xvector_4090 | 24 | 54 | 6679 | 0.1723 | 0.1723 | 0.1899 |
-| xvector_4090 | 32 | 54 | 6679 | 0.1692 | 0.1692 | 0.1908 |
+| orig_3090 | 4 | 54 | 6680 | 0.9743 | 1.0796 | 0.9835 |
+| orig_3090 | 6 | 54 | 6680 | 0.9545 | 1.0304 | 0.9587 |
+| orig_3090 | 8 | 54 | 6680 | 0.9171 | 1.0147 | 0.9182 |
+| orig_3090 | 10 | 54 | 6680 | 0.9063 | 0.9726 | 0.9075 |
+| orig_3090 | 12 | 54 | 6680 | 0.9232 | 0.9671 | 0.9240 |
+| orig_3090 | 16 | 54 | 6680 | 1.0585 | 1.1400 | 1.0867 |
+| orig_3090 | 20 | 54 | 6680 | 0.9723 | 1.0009 | 0.9827 |
+| orig_3090 | 24 | 54 | 6680 | 0.9966 | 1.0331 | 1.0223 |
+| orig_3090 | 32 | 54 | 6680 | 0.9075 | 0.9855 | 0.9116 |
+| xvector_4090 | 4 | 54 | 6680 | 0.2025 | 0.2025 | 0.2180 |
+| xvector_4090 | 6 | 54 | 6680 | 0.1991 | 0.1991 | 0.2205 |
+| xvector_4090 | 8 | 54 | 6680 | 0.1738 | 0.1738 | 0.1908 |
+| xvector_4090 | 10 | 54 | 6680 | 0.1698 | 0.1698 | 0.1883 |
+| xvector_4090 | 12 | 54 | 6680 | 0.1693 | 0.1693 | 0.1792 |
+| xvector_4090 | 16 | 54 | 6680 | 0.1674 | 0.1674 | 0.1833 |
+| xvector_4090 | 20 | 54 | 6680 | 0.1948 | 0.1948 | 0.2395 |
+| xvector_4090 | 24 | 54 | 6680 | 0.1723 | 0.1723 | 0.1899 |
+| xvector_4090 | 32 | 54 | 6680 | 0.1692 | 0.1692 | 0.1908 |
 
 ### Clean subset: xvector_4090 short + medium, by nfe
 | nfe | clips | ref chars | CER no_intro | WER no_intro |
 |---|---|---|---|---|
-| 4 | 36 | 2271 | 0.0119 | 0.0268 |
-| 6 | 36 | 2271 | 0.0163 | 0.0389 |
-| 8 | 36 | 2271 | 0.0172 | 0.0365 |
-| 10 | 36 | 2271 | 0.0189 | 0.0365 |
-| 12 | 36 | 2271 | 0.0189 | 0.0316 |
-| 16 | 36 | 2271 | 0.0238 | 0.0462 |
-| 20 | 36 | 2271 | 0.0176 | 0.0365 |
-| 24 | 36 | 2271 | 0.0181 | 0.0365 |
-| 32 | 36 | 2271 | 0.0132 | 0.0268 |
-| all | 324 | 20439 | 0.0173 | 0.0351 |
+| 4 | 36 | 2272 | 0.0119 | 0.0268 |
+| 6 | 36 | 2272 | 0.0154 | 0.0341 |
+| 8 | 36 | 2272 | 0.0172 | 0.0365 |
+| 10 | 36 | 2272 | 0.0189 | 0.0365 |
+| 12 | 36 | 2272 | 0.0189 | 0.0316 |
+| 16 | 36 | 2272 | 0.0238 | 0.0462 |
+| 20 | 36 | 2272 | 0.0176 | 0.0365 |
+| 24 | 36 | 2272 | 0.0180 | 0.0365 |
+| 32 | 36 | 2272 | 0.0132 | 0.0268 |
+| all | 324 | 20448 | 0.0172 | 0.0346 |
 
 ## 8. clips.csv hash
 - PASS: clips.csv sha256 3788f07cd0dff2d05d619e12ed4efc4e371a78a854e5061261da332abbdca872 (start: 3788f07cd0dff2d05d619e12ed4efc4e371a78a854e5061261da332abbdca872)

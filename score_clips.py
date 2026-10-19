@@ -3,9 +3,9 @@
 Transcripts are cached in asr_progress.jsonl next to clips.csv, and every score is recomputed
 from those transcripts, so rescoring is cheap and never re-transcribes.
 
-    python score_clips.py runs/nfe_benchmark/clips.csv --official full --limit 10
-    python score_clips.py runs/nfe_benchmark/clips.csv --official full --files orig_3090__p036__nfe6.wav
-    python score_clips.py runs/nfe_benchmark/clips.csv --official full          # full run
+    python score_clips.py runs/nfe_benchmark/clips.csv --official no_intro --limit 10
+    python score_clips.py runs/nfe_benchmark/clips.csv --official no_intro --files orig_3090__p036__nfe6.wav
+    python score_clips.py runs/nfe_benchmark/clips.csv --official no_intro      # full run
 """
 import argparse
 import json
@@ -252,7 +252,8 @@ def main():
             rec = json.loads(line)
             if rec["model_tag"] != model_tag:
                 sys.exit(f"{progress_path} was made with ASR model '{rec['model_tag']}', but asr.py is now "
-                         f"'{model_tag}'. Delete asr_progress.jsonl to start over with the new model.")
+                         f"'{model_tag}'. To re-transcribe with the new model, rename the old cache "
+                         f"(e.g. to asr_progress_{rec['model_tag'].split('|')[0]}.jsonl) instead of deleting it.")
             if Path(rec["path"]).name != df[PATH_COL].iloc[rec["row"]]:
                 sys.exit(f"{progress_path}: row {rec['row']} is {rec['path']}, but clips.csv row "
                          f"{rec['row']} is {df[PATH_COL].iloc[rec['row']]}. Did clips.csv change?")
@@ -307,7 +308,7 @@ def main():
 
     out_dir = base / "deliverables"
     out_dir.mkdir(exist_ok=True)
-    out_csv = out_dir / "clips.csv"
+    out_csv = out_dir / "clips_arush.csv"
     out.to_csv(out_csv, index=False)
 
     corpus = {v: corpus_wer(version_rows(scored, v)) for v in VERSIONS}

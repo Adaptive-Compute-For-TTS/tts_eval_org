@@ -156,7 +156,7 @@ Reference and transcript go through the same steps (`metrics.py` `normalize()`):
 1. Lowercase.
 2. `PRE_RULES` — format-only rewrites.
 3. Whisper `EnglishTextNormalizer` (numbers, currency, contractions, spelling variants, punctuation).
-4. `POST_RULES` — joins split digit groups and "N and a half".
+4. `POST_RULES` — joins split digit groups (never into a following year) and "N and a half".
 
 | Rule | Example (written ↔ spoken) |
 |---|---|
@@ -167,7 +167,8 @@ Reference and transcript go through the same steps (`metrics.py` `normalize()`):
 | Months, with or without a dot | `Jan.`, `Jan` ↔ `January`; `Mar.`, `Mar` ↔ `March` |
 | Compounds | `doorframe` ↔ `door frame`; `quetzal feather` ↔ `Quetzalfeather` |
 | Startups | `startup's` ↔ `start-ups` ↔ `startups` |
-| Digit groups | `555-0147` ↔ `555 0147` |
+| Digit groups | `555-0147` ↔ `555 0147` ↔ `5550147` (a group starting with 0 is joined before Whisper's normalizer, which would drop the zero) |
+| Dates stay apart | `March 3, 2024` → `march 3 2024`, not `32024` |
 
 **Golden rule:** a rule may only reconcile different *writings* of the same spoken words. A rule must never turn
 a wrong word into a right one (for example, correcting a misrecognised name), because that would hide real TTS
@@ -211,7 +212,7 @@ caffeinate -i python score_clips.py runs/nfe_benchmark/clips.csv --official no_i
 
 | Option | Meaning |
 |---|---|
-| `csv` | Benchmark CSV with columns `file, run_id, prompt_id, nfe, length, content, text, repo_path, wer`; audio is looked up in `clips/` next to it |
+| `csv` | Benchmark CSV with columns `file, run_id, prompt_id, nfe, length, content, text, repo_path, wer`; audio is looked up in `clips/` next to it. `repo_path` is the clip's path in the generation repo ([Adaptive-Compute-For-TTS/watai_exp](https://github.com/Adaptive-Compute-For-TTS/watai_exp)); it is kept as given and not used for scoring |
 | `--official {full,no_intro}` | **Required.** Which version fills the `wer` / `cer` columns |
 | `--limit N` | Transcribe only the next N untranscribed clips |
 | `--files F [F ...]` | Transcribe only these clips (values from the `file` column) |
@@ -265,15 +266,16 @@ python asr.py path/to/clip.wav
 2. Record the CSV hash so you can prove it was not modified: `shasum -a 256 runs/nfe_benchmark/clips.csv`.
 3. Run `pytest` (all tests must pass).
 4. Run the full command above with `--official no_intro`.
-5. Compare with `summary.md`: corpus WER 0.5832 (no_intro) / 0.7089 (full), corpus CER 0.5683 / 0.6024.
+5. Compare with `summary.md`: corpus WER 0.5831 (no_intro) / 0.7088 (full), corpus CER 0.5682 / 0.6023.
 6. Re-hash `clips.csv`; it must match step 2.
 
 Results are deterministic for a given model, settings and package versions (`wer_run_info.json` records all of
 them). A different Whisper model or version will change absolute numbers.
 
 **Changing the ASR model:** edit `ASR_SETTINGS` in `asr.py` (e.g. `"model": "large-v3"`, `"device": "cuda"`,
-`"compute_type": "float16"` on a GPU). The script refuses to mix models; delete `asr_progress.jsonl` only when
-you intentionally switch models, because it holds the slow-to-make transcripts.
+`"compute_type": "float16"` on a GPU). The script refuses to mix models. To switch, rename the old cache
+(e.g. `asr_progress_small.jsonl`) instead of deleting it: it holds the slow-to-make transcripts, and you can
+compare models later. Never compare WER across ASR models; re-transcribe every clip with the new one.
 
 ---
 
@@ -283,7 +285,7 @@ Written to `runs/nfe_benchmark/deliverables/` by `score_clips.py` (CSV and JSON)
 
 | File | Contents |
 |---|---|
-| Scored CSV (written as `clips.csv`; the shared copy may be renamed) | The 9 original columns with `wer` filled in, then the columns below, same row order |
+| `clips_arush.csv` (scored CSV; the website and teammates use this file) | The 9 original columns with `wer` filled in, then the columns below, same row order |
 | `wer_run_info.json` | ASR package, versions and every setting; normalization rules; metric definitions; corpus WER and CER (overall, by run, NFE, run × NFE); capping counts; intro phrase and method |
 | `summary.md` | Results, rule effects and the full verification output |
 | `intro_and_cut_findings.md` | Investigation of the intro and the 9.12 s length cap; each claim marked confirmed, likely or unverified |
@@ -386,7 +388,7 @@ Details and evidence: [`intro_and_cut_findings.md`](runs/nfe_benchmark/deliverab
 | Problem | Fix |
 |---|---|
 | `N audio files not found` | Put the WAVs in `clips/` next to the CSV, or test with `--limit` / `--files` |
-| `asr_progress.jsonl was made with ASR model ...` | You changed `ASR_SETTINGS`; delete the cache only if you mean to re-transcribe everything |
+| `asr_progress.jsonl was made with ASR model ...` | You changed `ASR_SETTINGS`; rename the old cache (e.g. `asr_progress_small.jsonl`) to re-transcribe everything with the new model |
 | `row N is X, but clips.csv row N is Y` | The CSV changed after transcription; restore the original CSV |
 | A correct-sounding clip scores badly | Run `python metrics.py "<reference>" "<transcript>"` to see both normalized texts; propose a format-only rule if they differ only in writing |
 | Run stops when the laptop sleeps | Use `caffeinate -i` (macOS) and rerun; it resumes from the cache |

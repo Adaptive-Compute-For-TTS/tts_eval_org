@@ -45,6 +45,13 @@ def check_audio(audio, path=""):
     return duration
 
 
+def set_model(name):
+    """Switch the Whisper model (e.g. "large-v3"); every other setting stays the same.
+    Updates ASR_SETTINGS in place, so every module that imported it records the new model."""
+    ASR_SETTINGS["model"] = name
+    get_model.cache_clear()
+
+
 @lru_cache(maxsize=1)
 def get_model():
     s = ASR_SETTINGS

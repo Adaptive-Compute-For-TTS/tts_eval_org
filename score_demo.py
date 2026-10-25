@@ -9,6 +9,9 @@ audio_path is relative to the manifest's folder, or absolute):
   .venv/bin/python score_demo.py --manifest runs/demo_clean_set/manifest.csv --run-id xvector_4090 \
       --out runs/demo_clean_set/wer_cer_demo_small.json --limit 3
 
+Another Whisper model (same settings otherwise; use a separate --out, the script refuses to mix models):
+  ... --asr-model large-v3 --out runs/demo_clean_set/wer_cer_demo_large-v3.json
+
 The output JSON is updated in place: new clips are added and an existing key is replaced, so many runs can
 share one file. Transcripts are cached next to it in transcripts_<model>.jsonl (keyed by the WAV's SHA-256),
 so re-running never re-transcribes the same audio. Scores come from score_clip() (official version no_intro)
@@ -28,7 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from asr import ASR_SETTINGS
+from asr import ASR_SETTINGS, set_model
 from score_clips import pkg, score_clip
 
 EVAL_NAME = "wer_cer"
@@ -181,7 +184,10 @@ def main():
     ap.add_argument("--nfe")
     ap.add_argument("--out", required=True, help="output JSON, created or updated in place")
     ap.add_argument("--limit", type=int, help="score only the first N clips (for testing)")
+    ap.add_argument("--asr-model", default=ASR_SETTINGS["model"],
+                    help=f"Whisper model (default {ASR_SETTINGS['model']}); other ASR settings are unchanged")
     args = ap.parse_args()
+    set_model(args.asr_model)
 
     reqs = load_requests(args)
     if args.limit is not None:

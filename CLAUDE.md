@@ -9,7 +9,7 @@
 - Report corpus WER/CER (total errors / total reference words), never the mean of per-clip values. Never cap corpus numbers
 - Silent or rejected clips stay in the output with WER = CER = 1.0 and `valid: false`. Never drop them
 - Test on 2-3 clips (`--limit`) before any full run and show Arush the results
-- Never download a Whisper model or a large file without asking (disk has ~7 GB free)
+- Never download a Whisper model or a large file without asking (disk has ~2.6 GB free after large-v3)
 - Commit or push only when asked. No Co-Authored-By or any Claude/Anthropic trailer
 
 ## Commands
@@ -18,6 +18,7 @@
 - Tests: `.venv/bin/python -m pytest -q`
 - Demo scoring, batch: `.venv/bin/python score_demo.py --manifest <manifest.csv> --run-id <run_id> --out <json>`
 - Demo scoring, one WAV: `.venv/bin/python score_demo.py --wav <f.wav> --text "<prompt>" --run-id <id> --prompt-id <pNNN> --nfe <n> --out <json>`
+- Other Whisper model: add `--asr-model large-v3` and a separate `--out` (e.g. `wer_cer_demo_large-v3.json`). Default stays `small`
 - Old 972-clip benchmark: `.venv/bin/python score_clips.py runs/nfe_benchmark/clips.csv --official no_intro [--limit N]`
 - Debug a mismatch: `.venv/bin/python metrics.py "<reference>" "<transcript>"`
 

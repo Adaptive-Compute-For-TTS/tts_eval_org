@@ -1,77 +1,48 @@
-# tts_eval: WER / CER / SIM scoring for dots.tts
+# tts_eval: WER/CER scoring for dots.tts
 
-## What this project is
-Arush's evaluation scripts for a team research project on dots.tts (a text-to-speech model).
-The team studies how the number of sampling steps (NFE) affects speech quality and speed.
-These scripts score generated audio: Whisper transcribes each clip, and the transcript is
-compared with the text the clip was supposed to say (WER = word error rate, CER = character
-error rate). SIM (speaker similarity) is a side experiment.
+## Critical Rules
 
-## Environment
-- MacBook Air, 8 GB RAM, no GPU. Everything runs on CPU.
-- Always work from this folder (`~/dots_WER_analysis/tts_eval`) with the venv active:
-  `source .venv/bin/activate`
-- Packages: faster-whisper, jiwer, whisper-normalizer, pandas, soundfile, torch, transformers.
-- ASR: faster-whisper `small`, int8, CPU, language en, beam 5, temperature 0 (set in `asr.py`).
+- Never modify input data: `runs/nfe_benchmark/clips.csv`, any `.wav`, `runs/human_arush/`, `runs/demo_clean_set/clips/`
+- Never delete a transcript cache (`asr_progress*.jsonl`, `transcripts_*.jsonl`). When the ASR model changes, use a new file name
+- Never compare or mix WER across ASR models. Every output records its model; one output file per model
+- Never write a normalization rule that turns a wrong word into a right one. Format-only rules, each with a unit test
+- Report corpus WER/CER (total errors / total reference words), never the mean of per-clip values. Never cap corpus numbers
+- Silent or rejected clips stay in the output with WER = CER = 1.0 and `valid: false`. Never drop them
+- Test on 2-3 clips (`--limit`) before any full run and show Arush the results
+- Never download a Whisper model or a large file without asking (disk has ~7 GB free)
+- Commit or push only when asked. No Co-Authored-By or any Claude/Anthropic trailer
 
-## Layout
-```
-tts_eval/
-  asr.py            load_audio(), check_audio() (rejects silent/short), transcribe(), ASR_SETTINGS
-  metrics.py        normalize() (PRE_RULES + Whisper normalizer + POST_RULES), compute_wer(),
-                    wer_cer(), corpus_wer(), sim()
-  quick_score.py    scores Arush's own test recordings in runs/human_arush/audio
-  score_clips.py    scores Nick's benchmark: runs/nfe_benchmark/clips.csv + clips/*.wav
-  prompts/benchmark_prompts_v1.json   Eric's 54 prompts (p001-p054)
-  runs/human_arush/                   Arush's own recordings (do not modify)
-  runs/nfe_benchmark/clips.csv        Nick's CSV (do not modify)
-  runs/nfe_benchmark/clips/           972 wavs, e.g. orig_3090__p001__nfe4.wav
-```
+## Commands
 
-## Data (runs/nfe_benchmark)
-- clips.csv: 972 rows = 2 runs (orig_3090, xvector_4090) x 54 prompts x NFE {4,6,8,10,12,16,20,24,32}.
-- Columns: file, run_id, prompt_id, nfe, length, content, text, repo_path, wer (empty; we fill it).
-- The `file` column matches filenames in clips/. `text` is the expected sentence.
-- 4 clips are silent (orig_3090 p036 NFE 6; p018, p034, p045 NFE 8). They must stay in the output
-  with WER = 1.0, never dropped.
-- Every orig_3090 clip is cut at 9.12 s. Nick wants to know if WER shows the endings cut off
-  (`trailing_dels` = reference words missing at the end).
-- orig_3090 clips start with an "intro" ("Hey, Adam here...", the voice reference leaking into the output);
-  xvector_4090 clips have none. The `no_intro` scoring version sets it aside; it is the official version.
-  Details in runs/nfe_benchmark/deliverables/intro_and_cut_findings.md.
-- xvector_4090 long clips are all cut at 12.80 s. The clean subset for NFE comparisons is xvector_4090
-  short + medium (324 clips).
-- `repo_path` is the clip's path in the generation repo (GitHub: Adaptive-Compute-For-TTS/watai_exp). Keep it as
-  given; it is not used for scoring.
+- Run from `~/dots_WER_analysis/tts_eval` with `.venv/bin/python` (Python 3.11). Not system `python3`
+- Tests: `.venv/bin/python -m pytest -q`
+- Demo scoring, batch: `.venv/bin/python score_demo.py --manifest <manifest.csv> --run-id <run_id> --out <json>`
+- Demo scoring, one WAV: `.venv/bin/python score_demo.py --wav <f.wav> --text "<prompt>" --run-id <id> --prompt-id <pNNN> --nfe <n> --out <json>`
+- Old 972-clip benchmark: `.venv/bin/python score_clips.py runs/nfe_benchmark/clips.csv --official no_intro [--limit N]`
+- Debug a mismatch: `.venv/bin/python metrics.py "<reference>" "<transcript>"`
 
-## dots.tts background (from the model README; relevant facts only)
-- dots.tts outputs 48 kHz mono audio, generated autoregressively in latent "patches" of ~160 ms.
-  9.12 s = exactly 57 patches, so the orig_3090 cut is likely a max-generation-length setting.
-- Voice cloning modes:
-  - continuation cloning: --prompt-audio (reference wav) + --prompt-text (its exact transcript)
-  - x-vector-only cloning: --prompt-audio only (no transcript)
-  In continuation mode the output should contain only the target sentence, not the reference.
-- The README's sample reference voice is docs/_static/audio/male-voice.wav with transcript
-  "Hey, Adam here. Let's create something that feels real, sounds human, and connects every time."
-  That is exactly the intro found on every orig_3090 clip. xvector_4090 clips have no intro,
-  consistent with x-vector-only cloning.
-- `--num-steps` = NFE (sampling steps); default 10 for flow-matching checkpoints.
-- The README's published WER (~1.3% English) uses different, stronger ASR models
-  (benchmark reference ASR / Qwen3-ASR-1.7B), so our Whisper-small numbers are NOT comparable.
-- The README in runs/nfe_benchmark/ (if present) is Nick's experiment notes, not this model README.
+## Architecture
 
-## Rules
-- Never modify clips.csv, the audio files, or anything in runs/human_arush/.
-- score_clips.py writes runs/nfe_benchmark/deliverables/clips_arush.csv and wer_run_info.json. summary.md in the
-  same folder is written by hand from those files: update its numbers whenever the scores change.
-- Normalization rules may only reconcile different WRITINGS of the same spoken words
-  ("Ave." vs "avenue"). Never add a rule that turns a wrong word into a right one.
-- Report corpus WER (total errors / total reference words), never the average of per-clip WER.
-- WER can exceed 1.0 when extra words are inserted. Never cap corpus WER/CER or the *_uncapped, *_full and
-  *_no_intro columns. Only the requester's `wer` / `cer` columns are capped at 1.0 (their format).
-- Transcription is slow on this laptop. Never delete runs/nfe_benchmark/asr_progress.jsonl
-  (saved transcripts). When the ASR model changes, rename it (e.g. asr_progress_small.jsonl) instead.
-  Never compare WER across ASR models.
-- Always test on a few clips (--limit) before a full run, and show Arush the results.
-- Explain what you changed in plain language.
+- `asr.py`: `load_audio`, `check_audio` (rejects < 0.5 s or RMS < 1e-3), `ASR_SETTINGS` (Whisper small, int8, CPU, en, beam 5, temp 0)
+- `metrics.py`: `normalize`, `compute_wer`, `wer_cer`, `corpus_wer`, `sim`
+- `score_clips.py`: `transcribe_audio`, `score_clip` (full + no_intro versions), `corpus_cer`. Shared by all scripts
+- `score_demo.py`: demo task #9. WAV(s) to one JSON keyed `run_id__prompt_id__nfe`
+- `sample_eval/run_eval.py`: self-checking 8-clip eval for the backend team's infra
+- `runs/nfe_benchmark/`: old 972-clip benchmark + `deliverables/`. `runs/demo_clean_set/`: demo #9 inputs + `wer_cer_demo_small.json` (see its README)
+- `prompts/benchmark_prompts_v1.json`: Eric's 54 prompts (p001-p054)
 
+## Code Style
+
+- Reuse `score_clip()` / `transcribe_audio()`. Don't write new WER/CER logic
+- No new dependencies without asking
+- Official version is `no_intro`. Uncapped values everywhere in demo output
+
+## Git
+
+- `git push` goes to personal (`arushatre/tts_eval`); `git push origin` goes to the org (`tts_eval_org`). Never `git push -u origin main`
+- Single-line commit messages, lowercase, no period
+
+## Context
+
+- Read `notes.md` at session start: current task, decisions, gotchas. Update it before ending a session
+- Full history and past results: `../HANDOFF.md`. Read only when needed

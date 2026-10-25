@@ -1,0 +1,37 @@
+audio_path,text,prompt_id,nfe,category,length_bucket,nick_file
+../nfe_benchmark/clips/xvector_4090__p001__nfe4.wav,The kettle is already on the stove.,p001,4,plain,short,output_p001_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p001__nfe20.wav,The kettle is already on the stove.,p001,20,plain,short,output_p001_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p001__nfe32.wav,The kettle is already on the stove.,p001,32,plain,short,output_p001_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p004__nfe4.wav,"After the meeting ended, she packed her notes into a canvas bag and caught the last bus downtown.",p004,4,plain,medium,output_p004_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p004__nfe20.wav,"After the meeting ended, she packed her notes into a canvas bag and caught the last bus downtown.",p004,20,plain,medium,output_p004_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p004__nfe32.wav,"After the meeting ended, she packed her notes into a canvas bag and caught the last bus downtown.",p004,32,plain,medium,output_p004_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p010__nfe4.wav,Your total comes to $42.75.,p010,4,numbers,short,output_p010_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p010__nfe20.wav,Your total comes to $42.75.,p010,20,numbers,short,output_p010_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p010__nfe32.wav,Your total comes to $42.75.,p010,32,numbers,short,output_p010_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p013__nfe4.wav,"On March 3rd, 2024, the temperature dropped to minus 18 degrees, and the school closed for 2 days.",p013,4,numbers,medium,output_p013_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p013__nfe20.wav,"On March 3rd, 2024, the temperature dropped to minus 18 degrees, and the school closed for 2 days.",p013,20,numbers,medium,output_p013_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p013__nfe32.wav,"On March 3rd, 2024, the temperature dropped to minus 18 degrees, and the school closed for 2 days.",p013,32,numbers,medium,output_p013_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p021__nfe4.wav,Professor Nguyen studies archaeopteryx fossils.,p021,4,names_rare_words,short,output_p021_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p021__nfe20.wav,Professor Nguyen studies archaeopteryx fossils.,p021,20,names_rare_words,short,output_p021_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p021__nfe32.wav,Professor Nguyen studies archaeopteryx fossils.,p021,32,names_rare_words,short,output_p021_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p023__nfe4.wav,"The sommelier recommended a Gewürztraminer, but Aoife ordered the Sauvignon Blanc and a plate of bruschetta instead.",p023,4,names_rare_words,medium,output_p023_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p023__nfe20.wav,"The sommelier recommended a Gewürztraminer, but Aoife ordered the Sauvignon Blanc and a plate of bruschetta instead.",p023,20,names_rare_words,medium,output_p023_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p023__nfe32.wav,"The sommelier recommended a Gewürztraminer, but Aoife ordered the Sauvignon Blanc and a plate of bruschetta instead.",p023,32,names_rare_words,medium,output_p023_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p028__nfe4.wav,The CEO joined the call at noon.,p028,4,acronyms_abbreviations,short,output_p028_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p028__nfe20.wav,The CEO joined the call at noon.,p028,20,acronyms_abbreviations,short,output_p028_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p028__nfe32.wav,The CEO joined the call at noon.,p028,32,acronyms_abbreviations,short,output_p028_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p031__nfe4.wav,"The FAQ says to restart the VPN, clear your DNS cache, and then contact IT if the error persists.",p031,4,acronyms_abbreviations,medium,output_p031_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p031__nfe20.wav,"The FAQ says to restart the VPN, clear your DNS cache, and then contact IT if the error persists.",p031,20,acronyms_abbreviations,medium,output_p031_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p031__nfe32.wav,"The FAQ says to restart the VPN, clear your DNS cache, and then contact IT if the error persists.",p031,32,acronyms_abbreviations,medium,output_p031_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p038__nfe4.wav,"Wow, that was incredible!",p038,4,prosody,short,output_p038_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p038__nfe20.wav,"Wow, that was incredible!",p038,20,prosody,short,output_p038_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p038__nfe32.wav,"Wow, that was incredible!",p038,32,prosody,short,output_p038_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p040__nfe4.wav,"Did you really drive all night to get here, or did you take the early train like last time?",p040,4,prosody,medium,output_p040_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p040__nfe20.wav,"Did you really drive all night to get here, or did you take the early train like last time?",p040,20,prosody,medium,output_p040_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p040__nfe32.wav,"Did you really drive all night to get here, or did you take the early train like last time?",p040,32,prosody,medium,output_p040_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p046__nfe4.wav,Six slick seals slid south.,p046,4,phonetic,short,output_p046_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p046__nfe20.wav,Six slick seals slid south.,p046,20,phonetic,short,output_p046_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p046__nfe32.wav,Six slick seals slid south.,p046,32,phonetic,short,output_p046_nfe32.wav
+../nfe_benchmark/clips/xvector_4090__p049__nfe4.wav,"Priya's prickly purple pepper plants produced plenty of plump peppers, pleasing practically every passing pedestrian.",p049,4,phonetic,medium,output_p049_nfe4.wav
+../nfe_benchmark/clips/xvector_4090__p049__nfe20.wav,"Priya's prickly purple pepper plants produced plenty of plump peppers, pleasing practically every passing pedestrian.",p049,20,phonetic,medium,output_p049_nfe20.wav
+../nfe_benchmark/clips/xvector_4090__p049__nfe32.wav,"Priya's prickly purple pepper plants produced plenty of plump peppers, pleasing practically every passing pedestrian.",p049,32,phonetic,medium,output_p049_nfe32.wav

@@ -15,3 +15,6 @@ runs/human_arush/
 
 # Mac junk
 .DS_Store
+
+# Claude working notes (local only)
+notes.md
